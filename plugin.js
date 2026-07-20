@@ -11,6 +11,9 @@ const EMOJI_FALLBACK =
 const VAZIRMATN_STACK =
   '"Vazirmatn", "Segoe WPC", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif, ' +
   EMOJI_FALLBACK
+const SYSTEM_UI_STACK =
+  '"Segoe WPC", "Segoe UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif, ' +
+  EMOJI_FALLBACK
 
 const DIRECTION_TARGET_SELECTOR = [
   '[data-slot="aui_assistant-message-content"] .aui-md :where(p, h1, h2, h3, h4, h5, h6, blockquote)',
@@ -20,6 +23,8 @@ const DIRECTION_TARGET_SELECTOR = [
 ].join(', ')
 const LIST_SELECTOR = '[data-slot="aui_assistant-message-content"] .aui-md :where(ul, ol)'
 const LIST_ITEM_SELECTOR = 'li'
+const SIDEBAR_LABEL_SELECTOR = '[data-slot="sidebar"] button span.truncate'
+const SIDEBAR_SECTION_LABEL_SELECTOR = '[data-slot="sidebar"] .dither + span'
 const EXCLUDED_TEXT_SELECTOR =
   'code, pre, .katex, [data-slot="code-card"], [data-streamdown="code-block"]'
 const RTL_LETTERS = /\p{Script=Arabic}/gu
@@ -96,6 +101,7 @@ function PersianTypographyRuntime() {
       managed.set(element, {
         hadDir: element.hasAttribute('dir'),
         dir: element.getAttribute('dir'),
+        fontFamily: element.style.getPropertyValue('font-family'),
         textAlign: element.style.getPropertyValue('text-align'),
         unicodeBidi: element.style.getPropertyValue('unicode-bidi')
       })
@@ -106,6 +112,12 @@ function PersianTypographyRuntime() {
         element.setAttribute('dir', original.dir ?? '')
       } else {
         element.removeAttribute('dir')
+      }
+
+      if (original.fontFamily) {
+        element.style.setProperty('font-family', original.fontFamily)
+      } else {
+        element.style.removeProperty('font-family')
       }
 
       if (original.textAlign) {
@@ -178,6 +190,21 @@ function PersianTypographyRuntime() {
 
       for (const list of document.querySelectorAll(LIST_SELECTOR)) {
         alignListItems(list)
+      }
+
+      for (const label of document.querySelectorAll(SIDEBAR_LABEL_SELECTOR)) {
+        applyDirection(label)
+      }
+
+      // SidebarPanelLabel's uppercase/dither treatment may contain decorative
+      // glyphs that Vazirmatn does not cover. Keep these headings on the native
+      // UI stack while leaving ordinary sidebar labels on Vazirmatn.
+      for (const heading of document.querySelectorAll(SIDEBAR_SECTION_LABEL_SELECTOR)) {
+        remember(heading)
+        heading.removeAttribute('dir')
+        heading.style.setProperty('font-family', SYSTEM_UI_STACK)
+        heading.style.removeProperty('unicode-bidi')
+        heading.style.removeProperty('text-align')
       }
     }
 

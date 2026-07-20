@@ -60,7 +60,10 @@ The plugin processes:
 - assistant paragraphs, headings, and blockquotes;
 - each ordered or unordered list as one paragraph-level direction unit, so every item inherits one consistent marker side and text alignment;
 - user messages;
-- the main and edit composers.
+- the main and edit composers;
+- sidebar leaf labels such as session, navigation, project, and cron titles, without changing their row layout.
+
+Sidebar section headings keep a native system UI font instead of Vazirmatn. Their uppercase/dither presentation can contain decorative glyphs that Vazirmatn does not cover.
 
 It excludes inline/fenced code, KaTeX, code cards, URLs, emails, and common file/path tokens from the direction vote. Code blocks themselves are never modified.
 

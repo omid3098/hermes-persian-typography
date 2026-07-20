@@ -134,6 +134,24 @@ assistantCodeHeavyPersian.appendChild(inlineCode)
 const userMessage = new ElementStub({ matches: ['[data-slot="aui_user-inline-text"]'], text: 'OpenAI یک شرکت هوش مصنوعی است' })
 const composer = new ElementStub({ matches: ['[data-slot="composer-rich-input"]'], text: 'npm install را برای نصب اجرا کن' })
 const codeBlock = new ElementStub({ matches: ['[data-slot="code-card"]'], text: 'const value = 1' })
+const sidebar = new ElementStub({ matches: ['[data-slot="sidebar"]'] })
+const sidebarRow = new ElementStub({ matches: ['button'], text: 'row chrome' })
+const sidebarPersianTitle = new ElementStub({
+  matches: ['[data-slot="sidebar"] button > span.truncate'],
+  text: 'Hermes رو برای فارسی تنظیم کنیم'
+})
+const sidebarEnglishTitle = new ElementStub({
+  matches: ['[data-slot="sidebar"] button > span.truncate'],
+  text: 'Fix authentication timeout'
+})
+const sidebarSectionLabel = new ElementStub({
+  matches: ['[data-slot="sidebar"] .dither + span'],
+  text: 'Sessions بخش‌ها'
+})
+sidebarRow.appendChild(sidebarPersianTitle)
+sidebarRow.appendChild(sidebarEnglishTitle)
+sidebar.appendChild(sidebarRow)
+sidebar.appendChild(sidebarSectionLabel)
 const persianList = new ElementStub({
   matches: ['[data-slot="aui_assistant-message-content"] .aui-md :where(ul, ol)'],
   text: 'جمله فارسی با شروع انگلیسی RTL جمله انگلیسی واقعی LTR حذف inline code از رأی‌گیری صحت syntax فایل‌های JavaScript و Python'
@@ -149,7 +167,7 @@ const englishHeavyListItem = new ElementStub({
 persianList.appendChild(persianListItem)
 persianList.appendChild(englishHeavyListItem)
 
-for (const element of [assistantPersian, assistantEnglish, assistantCodeHeavyPersian, userMessage, composer, codeBlock, persianList]) {
+for (const element of [assistantPersian, assistantEnglish, assistantCodeHeavyPersian, userMessage, composer, codeBlock, persianList, sidebar]) {
   body.appendChild(element)
 }
 
@@ -174,6 +192,14 @@ const documentStub = {
 
     if (selector.includes(':where(ul, ol)')) {
       return [persianList]
+    }
+
+    if (selector.includes('[data-slot="sidebar"]') && selector.includes('span.truncate')) {
+      return [sidebarPersianTitle, sidebarEnglishTitle]
+    }
+
+    if (selector.includes('.dither + span')) {
+      return [sidebarSectionLabel]
     }
 
     return body.querySelectorAll(selector)
@@ -244,6 +270,12 @@ assert.equal(persianListItem.style.getPropertyValue('text-align'), 'start')
 assert.equal(englishHeavyListItem.style.getPropertyValue('text-align'), 'start')
 assert.equal(assistantPersian.style.getPropertyValue('unicode-bidi'), 'isolate')
 assert.equal(assistantPersian.style.getPropertyValue('text-align'), 'start')
+assert.equal(sidebarPersianTitle.getAttribute('dir'), 'rtl', 'Persian-dominant session titles should be RTL')
+assert.equal(sidebarEnglishTitle.getAttribute('dir'), 'ltr', 'English session titles should remain LTR')
+assert.equal(sidebarRow.getAttribute('dir'), null, 'sidebar row layout must not be flipped')
+assert.equal(sidebarSectionLabel.getAttribute('dir'), null, 'section headings must not receive smart direction')
+assert.doesNotMatch(sidebarSectionLabel.style.getPropertyValue('font-family'), /Vazirmatn/, 'section headings must retain a native UI font')
+assert.match(sidebarSectionLabel.style.getPropertyValue('font-family'), /Segoe/, 'section headings should use the native UI stack')
 
 assistantPersian.textContent = 'Hermes Desktop is written in English'
 observers.find(observer => !observer.disconnected)?.callback([{ type: 'characterData', target: assistantPersian }])
@@ -261,6 +293,9 @@ assert.equal(rootStyle.getPropertyValue(FONT_PROPERTY), '"Midnight Theme Font", 
 assert.equal(assistantPersian.getAttribute('dir'), null, 'cleanup should restore an absent dir attribute')
 assert.equal(userMessage.getAttribute('dir'), null)
 assert.equal(composer.getAttribute('dir'), null)
+assert.equal(sidebarPersianTitle.getAttribute('dir'), null)
+assert.equal(sidebarEnglishTitle.getAttribute('dir'), null)
+assert.equal(sidebarSectionLabel.style.getPropertyValue('font-family'), '')
 assert.equal(assistantPersian.style.getPropertyValue('unicode-bidi'), '')
 assert.equal(assistantPersian.style.getPropertyValue('text-align'), '')
 assert.ok(observers.every(observer => observer.disconnected), 'all observers should be disconnected')
