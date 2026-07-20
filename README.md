@@ -1,4 +1,5 @@
 # Hermes Persian Typography
+<img width="1202" height="879" alt="image" src="https://github.com/user-attachments/assets/24f0df45-de76-4e04-a52e-6ab27e291ae9" />
 
 A small, independent [Hermes Desktop](https://hermes-agent.nousresearch.com/) plugin for better Persian typography:
 
