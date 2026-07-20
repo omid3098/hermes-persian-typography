@@ -139,11 +139,11 @@ const persianList = new ElementStub({
   text: 'جمله فارسی با شروع انگلیسی RTL جمله انگلیسی واقعی LTR حذف inline code از رأی‌گیری صحت syntax فایل‌های JavaScript و Python'
 })
 const persianListItem = new ElementStub({
-  matches: ['[data-slot="aui_assistant-message-content"] .aui-md :where(p, h1, h2, h3, h4, h5, h6, li, blockquote)'],
+  matches: ['li', '[data-slot="aui_assistant-message-content"] .aui-md :where(p, h1, h2, h3, h4, h5, h6, li, blockquote)'],
   text: 'جمله فارسی با شروع انگلیسی RTL'
 })
 const englishHeavyListItem = new ElementStub({
-  matches: ['[data-slot="aui_assistant-message-content"] .aui-md :where(p, h1, h2, h3, h4, h5, h6, li, blockquote)'],
+  matches: ['li', '[data-slot="aui_assistant-message-content"] .aui-md :where(p, h1, h2, h3, h4, h5, h6, li, blockquote)'],
   text: 'صحت syntax فایل‌های JavaScript و Python'
 })
 persianList.appendChild(persianListItem)
@@ -238,6 +238,10 @@ assert.equal(codeBlock.getAttribute('dir'), null, 'code blocks must not be modif
 assert.equal(persianList.getAttribute('dir'), 'rtl', 'a Persian-dominant list should own one shared direction')
 assert.equal(persianListItem.getAttribute('dir'), null, 'list items must not receive independent direction')
 assert.equal(englishHeavyListItem.getAttribute('dir'), null, 'an English-heavy list item must inherit the list direction so markers stay aligned')
+assert.equal(persianListItem.style.getPropertyValue('unicode-bidi'), 'isolate', 'list item text must use the inherited list base direction')
+assert.equal(englishHeavyListItem.style.getPropertyValue('unicode-bidi'), 'isolate', 'English-leading item text must not fall back to plaintext direction')
+assert.equal(persianListItem.style.getPropertyValue('text-align'), 'start')
+assert.equal(englishHeavyListItem.style.getPropertyValue('text-align'), 'start')
 assert.equal(assistantPersian.style.getPropertyValue('unicode-bidi'), 'isolate')
 assert.equal(assistantPersian.style.getPropertyValue('text-align'), 'start')
 

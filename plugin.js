@@ -156,6 +156,15 @@ function PersianTypographyRuntime() {
       }
     }
 
+    const alignListItems = list => {
+      for (const item of list.querySelectorAll(LIST_ITEM_SELECTOR)) {
+        remember(item)
+        item.removeAttribute('dir')
+        item.style.setProperty('unicode-bidi', 'isolate')
+        item.style.setProperty('text-align', 'start')
+      }
+    }
+
     const scan = () => {
       frame = 0
 
@@ -165,6 +174,10 @@ function PersianTypographyRuntime() {
 
       for (const element of document.querySelectorAll(DIRECTION_TARGET_SELECTOR)) {
         applyDirection(element)
+      }
+
+      for (const list of document.querySelectorAll(LIST_SELECTOR)) {
+        alignListItems(list)
       }
     }
 
