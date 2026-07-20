@@ -21,12 +21,24 @@ def require(condition: bool, message: str) -> None:
 def main() -> int:
     text = PLUGIN.read_text(encoding="utf-8")
     require("from '@hermes/plugin-sdk'" in text, "plugin must import the official SDK")
-    require("THEMES_AREA" in text, "plugin must register a theme contribution")
+    require("STATUSBAR_AREAS" in text, "plugin must use a persistent mounted contribution")
+    require("THEMES_AREA" not in text, "font override must not register or clone a color theme")
     require("id: 'hermes-vazirmatn-theme'" in text, "plugin id is missing")
-    require("name: 'nous-vazirmatn'" in text, "theme name is missing")
+    require("MutationObserver" in text, "font override must survive theme changes")
+    require("--dt-font-sans" in text, "font override variable is missing")
+    require("observer.disconnect()" in text, "font observer must be cleaned up when disabled")
+    require("root.style.setProperty(FONT_PROPERTY, underlyingFont)" in text, "disable must restore the active theme font")
     require("@v1.0.0/fonts/vazirmatn.css" in text, "font URL must be release-pinned")
+    require("name: 'Hermes Vazirmatn Font'" in text, "plugin display name is stale")
     require(FONT.is_file() and FONT.stat().st_size > 100_000, "vendored variable font is missing")
     require("font-weight: 100 900" in CSS.read_text(encoding="utf-8"), "variable font CSS is invalid")
+
+    subprocess.run(
+        ["node", str(ROOT / "scripts" / "test-plugin.mjs")],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
     with tempfile.TemporaryDirectory() as tmp:
         install = subprocess.run(

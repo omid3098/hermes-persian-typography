@@ -71,8 +71,8 @@ def main() -> int:
 
     shutil.copy2(SOURCE, plugin_file)
     print(f"Installed {PLUGIN_ID} to {plugin_file}")
-    print("In Hermes Desktop, open Settings > Appearance and select 'Nous — Vazirmatn'.")
-    print("If it is not listed yet, use the command palette: Reload desktop plugins.")
+    print("Vazirmatn now applies over the current Hermes Desktop color theme.")
+    print("If it is not active yet, use the command palette: Reload desktop plugins.")
     return 0
 
 
