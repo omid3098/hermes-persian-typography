@@ -1,0 +1,8 @@
+/* Vazirmatn v33.003 — SIL Open Font License 1.1 */
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./Vazirmatn[wght].woff2') format('woff2-variations');
+}
