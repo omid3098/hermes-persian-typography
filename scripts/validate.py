@@ -30,6 +30,8 @@ def main() -> int:
     require("MutationObserver" in text, "plugin must survive theme and streaming changes")
     require("--dt-font-sans" in text, "font override variable is missing")
     require("DIRECTION_TARGET_SELECTOR" in text, "smart direction targets are missing")
+    require("LIST_SELECTOR" in text and "LIST_ITEM_SELECTOR" in text, "list-level direction handling is missing")
+    require("h1, h2, h3, h4, h5, h6, li, blockquote" not in text, "list items must not be independent direction targets")
     require("Script=Arabic" in text and "Script=Latin" in text, "dominant-script detection is missing")
     require("EXCLUDED_TEXT_SELECTOR" in text, "technical content exclusions are missing")
     require("requestAnimationFrame" in text, "streaming scans must be frame-batched")

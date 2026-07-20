@@ -57,7 +57,8 @@ This plugin counts Arabic-script and Latin-script letters across the visible pro
 
 The plugin processes:
 
-- assistant paragraphs, headings, list items, and blockquotes;
+- assistant paragraphs, headings, and blockquotes;
+- each ordered or unordered list as one paragraph-level direction unit, so every item inherits one consistent marker side;
 - user messages;
 - the main and edit composers.
 

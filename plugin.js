@@ -13,10 +13,13 @@ const VAZIRMATN_STACK =
   EMOJI_FALLBACK
 
 const DIRECTION_TARGET_SELECTOR = [
-  '[data-slot="aui_assistant-message-content"] .aui-md :where(p, h1, h2, h3, h4, h5, h6, li, blockquote)',
+  '[data-slot="aui_assistant-message-content"] .aui-md :where(p, h1, h2, h3, h4, h5, h6, blockquote)',
+  '[data-slot="aui_assistant-message-content"] .aui-md :where(ul, ol)',
   '[data-slot="aui_user-inline-text"]',
   '[data-slot="composer-rich-input"]'
 ].join(', ')
+const LIST_SELECTOR = '[data-slot="aui_assistant-message-content"] .aui-md :where(ul, ol)'
+const LIST_ITEM_SELECTOR = 'li'
 const EXCLUDED_TEXT_SELECTOR =
   'code, pre, .katex, [data-slot="code-card"], [data-streamdown="code-block"]'
 const RTL_LETTERS = /\p{Script=Arabic}/gu
@@ -142,8 +145,23 @@ function PersianTypographyRuntime() {
       element.style.setProperty('text-align', 'start')
     }
 
+    const restoreListItems = list => {
+      for (const item of list.querySelectorAll(LIST_ITEM_SELECTOR)) {
+        const original = managed.get(item)
+
+        if (original) {
+          restore(item, original)
+          managed.delete(item)
+        }
+      }
+    }
+
     const scan = () => {
       frame = 0
+
+      for (const list of document.querySelectorAll(LIST_SELECTOR)) {
+        restoreListItems(list)
+      }
 
       for (const element of document.querySelectorAll(DIRECTION_TARGET_SELECTOR)) {
         applyDirection(element)

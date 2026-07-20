@@ -134,8 +134,22 @@ assistantCodeHeavyPersian.appendChild(inlineCode)
 const userMessage = new ElementStub({ matches: ['[data-slot="aui_user-inline-text"]'], text: 'OpenAI یک شرکت هوش مصنوعی است' })
 const composer = new ElementStub({ matches: ['[data-slot="composer-rich-input"]'], text: 'npm install را برای نصب اجرا کن' })
 const codeBlock = new ElementStub({ matches: ['[data-slot="code-card"]'], text: 'const value = 1' })
+const persianList = new ElementStub({
+  matches: ['[data-slot="aui_assistant-message-content"] .aui-md :where(ul, ol)'],
+  text: 'جمله فارسی با شروع انگلیسی RTL جمله انگلیسی واقعی LTR حذف inline code از رأی‌گیری صحت syntax فایل‌های JavaScript و Python'
+})
+const persianListItem = new ElementStub({
+  matches: ['[data-slot="aui_assistant-message-content"] .aui-md :where(p, h1, h2, h3, h4, h5, h6, li, blockquote)'],
+  text: 'جمله فارسی با شروع انگلیسی RTL'
+})
+const englishHeavyListItem = new ElementStub({
+  matches: ['[data-slot="aui_assistant-message-content"] .aui-md :where(p, h1, h2, h3, h4, h5, h6, li, blockquote)'],
+  text: 'صحت syntax فایل‌های JavaScript و Python'
+})
+persianList.appendChild(persianListItem)
+persianList.appendChild(englishHeavyListItem)
 
-for (const element of [assistantPersian, assistantEnglish, assistantCodeHeavyPersian, userMessage, composer, codeBlock]) {
+for (const element of [assistantPersian, assistantEnglish, assistantCodeHeavyPersian, userMessage, composer, codeBlock, persianList]) {
   body.appendChild(element)
 }
 
@@ -155,7 +169,11 @@ const documentStub = {
   },
   querySelectorAll(selector) {
     if (selector.includes('aui_assistant-message-content') && selector.includes('composer-rich-input')) {
-      return [assistantPersian, assistantEnglish, assistantCodeHeavyPersian, userMessage, composer]
+      return [assistantPersian, assistantEnglish, assistantCodeHeavyPersian, persianList, userMessage, composer]
+    }
+
+    if (selector.includes(':where(ul, ol)')) {
+      return [persianList]
     }
 
     return body.querySelectorAll(selector)
@@ -217,6 +235,9 @@ assert.equal(assistantCodeHeavyPersian.getAttribute('dir'), 'rtl', 'inline code 
 assert.equal(userMessage.getAttribute('dir'), 'rtl', 'English-leading Persian user message should resolve RTL')
 assert.equal(composer.getAttribute('dir'), 'rtl', 'English-leading Persian composer should resolve RTL')
 assert.equal(codeBlock.getAttribute('dir'), null, 'code blocks must not be modified')
+assert.equal(persianList.getAttribute('dir'), 'rtl', 'a Persian-dominant list should own one shared direction')
+assert.equal(persianListItem.getAttribute('dir'), null, 'list items must not receive independent direction')
+assert.equal(englishHeavyListItem.getAttribute('dir'), null, 'an English-heavy list item must inherit the list direction so markers stay aligned')
 assert.equal(assistantPersian.style.getPropertyValue('unicode-bidi'), 'isolate')
 assert.equal(assistantPersian.style.getPropertyValue('text-align'), 'start')
 
