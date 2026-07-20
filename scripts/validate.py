@@ -11,6 +11,8 @@ PLUGIN = ROOT / "plugin.js"
 FONT = ROOT / "fonts" / "Vazirmatn[wght].woff2"
 CSS = ROOT / "fonts" / "vazirmatn.css"
 INSTALLER = ROOT / "install.py"
+PLUGIN_ID = "hermes-persian-typography"
+LEGACY_PLUGIN_ID = "hermes-vazirmatn-theme"
 
 
 def require(condition: bool, message: str) -> None:
@@ -22,14 +24,20 @@ def main() -> int:
     text = PLUGIN.read_text(encoding="utf-8")
     require("from '@hermes/plugin-sdk'" in text, "plugin must import the official SDK")
     require("STATUSBAR_AREAS" in text, "plugin must use a persistent mounted contribution")
-    require("THEMES_AREA" not in text, "font override must not register or clone a color theme")
-    require("id: 'hermes-vazirmatn-theme'" in text, "plugin id is missing")
-    require("MutationObserver" in text, "font override must survive theme changes")
+    require("THEMES_AREA" not in text, "typography plugin must not register or clone a color theme")
+    require("id: 'hermes-persian-typography'" in text, "plugin id is stale")
+    require("name: 'Hermes Persian Typography'" in text, "plugin display name is stale")
+    require("MutationObserver" in text, "plugin must survive theme and streaming changes")
     require("--dt-font-sans" in text, "font override variable is missing")
-    require("observer.disconnect()" in text, "font observer must be cleaned up when disabled")
-    require("root.style.setProperty(FONT_PROPERTY, underlyingFont)" in text, "disable must restore the active theme font")
-    require("@v1.0.0/fonts/vazirmatn.css" in text, "font URL must be release-pinned")
-    require("name: 'Hermes Vazirmatn Font'" in text, "plugin display name is stale")
+    require("DIRECTION_TARGET_SELECTOR" in text, "smart direction targets are missing")
+    require("Script=Arabic" in text and "Script=Latin" in text, "dominant-script detection is missing")
+    require("EXCLUDED_TEXT_SELECTOR" in text, "technical content exclusions are missing")
+    require("requestAnimationFrame" in text, "streaming scans must be frame-batched")
+    require("fontObserver.disconnect()" in text, "font observer must be cleaned up")
+    require("contentObserver.disconnect()" in text, "content observer must be cleaned up")
+    require("restore(element, original)" in text, "direction attributes/styles must be restored")
+    require("root.style.setProperty(FONT_PROPERTY, underlyingFont)" in text, "active theme font must be restored")
+    require("@v2.0.0/fonts/vazirmatn.css" in text, "font URL must be pinned to v2.0.0")
     require(FONT.is_file() and FONT.stat().st_size > 100_000, "vendored variable font is missing")
     require("font-weight: 100 900" in CSS.read_text(encoding="utf-8"), "variable font CSS is invalid")
 
@@ -41,14 +49,21 @@ def main() -> int:
     )
 
     with tempfile.TemporaryDirectory() as tmp:
+        plugins_home = Path(tmp) / "desktop-plugins"
+        legacy = plugins_home / LEGACY_PLUGIN_ID
+        legacy.mkdir(parents=True)
+        (legacy / "plugin.js").write_text("legacy", encoding="utf-8")
+
         install = subprocess.run(
             [sys.executable, str(INSTALLER), "--hermes-home", tmp],
             check=True,
             capture_output=True,
             text=True,
         )
-        installed = Path(tmp) / "desktop-plugins" / "hermes-vazirmatn-theme" / "plugin.js"
+        installed = plugins_home / PLUGIN_ID / "plugin.js"
         require(installed.read_bytes() == PLUGIN.read_bytes(), "installer copied different bytes")
+        require(not legacy.exists(), "installer did not remove the legacy plugin directory")
+        require("Migrated installation" in install.stdout, "installer did not report legacy migration")
         require("Installed" in install.stdout, "installer did not report success")
 
         subprocess.run(

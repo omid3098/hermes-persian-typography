@@ -3,14 +3,25 @@ import { useEffect } from 'react'
 import { jsx } from 'react/jsx-runtime'
 
 const FONT_PROPERTY = '--dt-font-sans'
-const FONT_STYLESHEET_ID = 'hermes-vazirmatn-font-stylesheet'
+const FONT_STYLESHEET_ID = 'hermes-persian-typography-font'
 const FONT_STYLESHEET_URL =
-  'https://cdn.jsdelivr.net/gh/omid3098/hermes-vazirmatn-theme@v1.0.0/fonts/vazirmatn.css'
+  'https://cdn.jsdelivr.net/gh/omid3098/hermes-persian-typography@v2.0.0/fonts/vazirmatn.css'
 const EMOJI_FALLBACK =
   '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", emoji'
 const VAZIRMATN_STACK =
   '"Vazirmatn", "Segoe WPC", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif, ' +
   EMOJI_FALLBACK
+
+const DIRECTION_TARGET_SELECTOR = [
+  '[data-slot="aui_assistant-message-content"] .aui-md :where(p, h1, h2, h3, h4, h5, h6, li, blockquote)',
+  '[data-slot="aui_user-inline-text"]',
+  '[data-slot="composer-rich-input"]'
+].join(', ')
+const EXCLUDED_TEXT_SELECTOR =
+  'code, pre, .katex, [data-slot="code-card"], [data-streamdown="code-block"]'
+const RTL_LETTERS = /\p{Script=Arabic}/gu
+const LTR_LETTERS = /\p{Script=Latin}/gu
+const TECHNICAL_TOKEN = /(?:https?:\/\/|www\.)\S+|(?:[A-Za-z]:[\\/]|\.{0,2}[\\/])\S+|\b\S+@\S+\.\S+\b/gu
 
 function ensureFontStylesheet() {
   const existing = document.getElementById(FONT_STYLESHEET_ID)
@@ -23,41 +34,157 @@ function ensureFontStylesheet() {
   link.id = FONT_STYLESHEET_ID
   link.rel = 'stylesheet'
   link.href = FONT_STYLESHEET_URL
-  link.dataset.hermesVazirmatn = 'true'
+  link.dataset.hermesPersianTypography = 'true'
   document.head.appendChild(link)
 }
 
-function VazirmatnFontOverride() {
+function countMatches(text, pattern) {
+  return text.match(pattern)?.length ?? 0
+}
+
+function readableText(element) {
+  const clone = element.cloneNode(true)
+
+  for (const excluded of clone.querySelectorAll(EXCLUDED_TEXT_SELECTOR)) {
+    excluded.remove()
+  }
+
+  return (clone.textContent ?? '').replace(TECHNICAL_TOKEN, ' ')
+}
+
+function dominantDirection(element) {
+  const text = readableText(element)
+  const rtl = countMatches(text, RTL_LETTERS)
+  const ltr = countMatches(text, LTR_LETTERS)
+
+  if (rtl === 0 && ltr === 0) {
+    return null
+  }
+
+  return rtl > ltr ? 'rtl' : 'ltr'
+}
+
+function PersianTypographyRuntime() {
   useEffect(() => {
     const root = document.documentElement
-    let applying = false
+    const managed = new Map()
+    let applyingFont = false
+    let frame = 0
     let underlyingFont = root.style.getPropertyValue(FONT_PROPERTY)
 
     ensureFontStylesheet()
 
-    const apply = () => {
+    const applyFont = () => {
       const current = root.style.getPropertyValue(FONT_PROPERTY)
 
       if (current !== VAZIRMATN_STACK) {
         underlyingFont = current
-        applying = true
+        applyingFont = true
         root.style.setProperty(FONT_PROPERTY, VAZIRMATN_STACK)
-        applying = false
+        applyingFont = false
       }
     }
 
-    apply()
+    const remember = element => {
+      if (managed.has(element)) {
+        return
+      }
 
-    const observer = new MutationObserver(() => {
-      if (!applying) {
-        apply()
+      managed.set(element, {
+        hadDir: element.hasAttribute('dir'),
+        dir: element.getAttribute('dir'),
+        textAlign: element.style.getPropertyValue('text-align'),
+        unicodeBidi: element.style.getPropertyValue('unicode-bidi')
+      })
+    }
+
+    const restore = (element, original) => {
+      if (original.hadDir) {
+        element.setAttribute('dir', original.dir ?? '')
+      } else {
+        element.removeAttribute('dir')
+      }
+
+      if (original.textAlign) {
+        element.style.setProperty('text-align', original.textAlign)
+      } else {
+        element.style.removeProperty('text-align')
+      }
+
+      if (original.unicodeBidi) {
+        element.style.setProperty('unicode-bidi', original.unicodeBidi)
+      } else {
+        element.style.removeProperty('unicode-bidi')
+      }
+    }
+
+    const applyDirection = element => {
+      if (!(element instanceof Element)) {
+        return
+      }
+
+      const direction = dominantDirection(element)
+
+      if (!direction) {
+        const original = managed.get(element)
+
+        if (original) {
+          restore(element, original)
+          managed.delete(element)
+        }
+
+        return
+      }
+
+      remember(element)
+      element.setAttribute('dir', direction)
+      element.style.setProperty('unicode-bidi', 'isolate')
+      element.style.setProperty('text-align', 'start')
+    }
+
+    const scan = () => {
+      frame = 0
+
+      for (const element of document.querySelectorAll(DIRECTION_TARGET_SELECTOR)) {
+        applyDirection(element)
+      }
+    }
+
+    const scheduleScan = () => {
+      if (!frame) {
+        frame = requestAnimationFrame(scan)
+      }
+    }
+
+    applyFont()
+    scheduleScan()
+
+    const fontObserver = new MutationObserver(() => {
+      if (!applyingFont) {
+        applyFont()
       }
     })
+    fontObserver.observe(root, { attributeFilter: ['class', 'style'], attributes: true })
 
-    observer.observe(root, { attributeFilter: ['class', 'style'], attributes: true })
+    const contentObserver = new MutationObserver(scheduleScan)
+    contentObserver.observe(document.body, {
+      characterData: true,
+      childList: true,
+      subtree: true
+    })
 
     return () => {
-      observer.disconnect()
+      fontObserver.disconnect()
+      contentObserver.disconnect()
+
+      if (frame) {
+        cancelAnimationFrame(frame)
+      }
+
+      for (const [element, original] of managed) {
+        restore(element, original)
+      }
+      managed.clear()
 
       if (root.style.getPropertyValue(FONT_PROPERTY) === VAZIRMATN_STACK) {
         root.style.setProperty(FONT_PROPERTY, underlyingFont)
@@ -69,14 +196,14 @@ function VazirmatnFontOverride() {
 }
 
 export default {
-  id: 'hermes-vazirmatn-theme',
-  name: 'Hermes Vazirmatn Font',
+  id: 'hermes-persian-typography',
+  name: 'Hermes Persian Typography',
   register(ctx) {
     ctx.register({
-      id: 'font-override-runtime',
+      id: 'persian-typography-runtime',
       area: STATUSBAR_AREAS.right,
       order: -10000,
-      render: () => jsx(VazirmatnFontOverride, {})
+      render: () => jsx(PersianTypographyRuntime, {})
     })
   }
 }
