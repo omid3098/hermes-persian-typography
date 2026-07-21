@@ -16,7 +16,7 @@ It does not modify Hermes source, `app.asar`, generated CSS, stored messages, or
 
 Give your agent this repository URL and say:
 
-> Install Hermes Persian Typography from this repository. Run its installer, migrate any older hermes-vazirmatn-theme installation, verify the plugin was copied to my active Hermes profile, and do not modify Hermes source files or change my selected color theme.
+> Install Hermes Persian Typography from this repository. Run its installer, migrate any older hermes-vazirmatn-theme installation, verify the plugin was copied to my active Hermes profile, and do not modify Hermes source files or change my selected color theme. If I ask for every profile, use `--all-profiles`.
 
 Repository:
 
@@ -41,6 +41,15 @@ The installer resolves the active Hermes home and copies only `plugin.js` to:
 ```text
 <HERMES_HOME>/desktop-plugins/hermes-persian-typography/plugin.js
 ```
+
+Hermes profiles have separate home and plugin directories. Target one named profile or every existing profile explicitly:
+
+```bash
+python install.py --profile work
+python install.py --all-profiles
+```
+
+The default remains the active profile. A future profile inherits the plugin only when created with Hermes' `--clone-all`; otherwise rerun `python install.py --all-profiles`.
 
 If an older installation exists at `desktop-plugins/hermes-vazirmatn-theme`, the installer removes it after installing the replacement. This avoids loading both plugins at once.
 
@@ -100,6 +109,8 @@ To remove both current and legacy install directories:
 
 ```bash
 python install.py --uninstall
+python install.py --profile work --uninstall
+python install.py --all-profiles --uninstall
 ```
 
 ## Font loading and privacy
@@ -124,7 +135,7 @@ Validation covers:
 - composer and user-message handling;
 - full DOM cleanup on disable;
 - migration from the legacy plugin directory;
-- install/uninstall behavior in a temporary Hermes home.
+- active, named, and all-profile install/uninstall behavior in temporary Hermes homes.
 
 ## Compatibility
 

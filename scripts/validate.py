@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -56,7 +57,8 @@ def main() -> int:
     )
 
     with tempfile.TemporaryDirectory() as tmp:
-        plugins_home = Path(tmp) / "desktop-plugins"
+        root = Path(tmp)
+        plugins_home = root / "desktop-plugins"
         legacy = plugins_home / LEGACY_PLUGIN_ID
         legacy.mkdir(parents=True)
         (legacy / "plugin.js").write_text("legacy", encoding="utf-8")
@@ -73,13 +75,56 @@ def main() -> int:
         require("Migrated installation" in install.stdout, "installer did not report legacy migration")
         require("Installed" in install.stdout, "installer did not report success")
 
+        work = root / "profiles" / "work"
+        personal = root / "profiles" / "personal"
+        stray = root / "profiles" / "not-a-profile"
+        for profile in (work, personal):
+            profile.mkdir(parents=True)
+            (profile / "SOUL.md").write_text("", encoding="utf-8")
+        stray.mkdir(parents=True)
+        env = {**os.environ, "HERMES_HOME": tmp}
+
+        invalid = subprocess.run(
+            [sys.executable, str(INSTALLER), "--profile", "../outside"],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        require(invalid.returncode != 0, "installer accepted a profile path traversal")
+
         subprocess.run(
-            [sys.executable, str(INSTALLER), "--hermes-home", tmp, "--uninstall"],
+            [sys.executable, str(INSTALLER), "--profile", "work"],
             check=True,
             capture_output=True,
             text=True,
+            env=env,
         )
-        require(not installed.parent.exists(), "uninstaller left the plugin directory behind")
+        require((work / "desktop-plugins" / PLUGIN_ID / "plugin.js").is_file(), "profile install missed its target")
+        require(not (personal / "desktop-plugins").exists(), "profile install changed another profile")
+
+        subprocess.run(
+            [sys.executable, str(INSTALLER), "--all-profiles"],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        for home in (root, work, personal):
+            require(
+                (home / "desktop-plugins" / PLUGIN_ID / "plugin.js").read_bytes() == PLUGIN.read_bytes(),
+                f"all-profile install missed {home}",
+            )
+        require(not (stray / "desktop-plugins").exists(), "installer treated a stray directory as a profile")
+
+        subprocess.run(
+            [sys.executable, str(INSTALLER), "--all-profiles", "--uninstall"],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        for home in (root, work, personal):
+            require(not (home / "desktop-plugins" / PLUGIN_ID).exists(), f"all-profile uninstall missed {home}")
 
     print("All validation checks passed.")
     return 0
